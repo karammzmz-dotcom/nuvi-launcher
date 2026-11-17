@@ -11,11 +11,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Locate Gradle project folder
+      - name: Unzip project (if the repo contains a .zip) and locate Gradle project
         id: find
         run: |
-          f=$(find . -name settings.gradle.kts -not -path "*/node_modules/*" | head -n 1)
-          if [ -z "$f" ]; then echo "settings.gradle.kts not found in repo"; ls -R | head -50; exit 1; fi
+          if ! find . -name settings.gradle.kts -not -path "./_project/*" | grep -q .; then
+            z=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+            if [ -z "$z" ]; then echo "No settings.gradle.kts and no .zip found in repo"; ls -R | head -50; exit 1; fi
+            echo "Unzipping $z"
+            mkdir -p _project
+            unzip -q -o "$z" -d _project
+          fi
+          f=$(find . -name settings.gradle.kts | head -n 1)
           d=$(dirname "$f")
           echo "Project dir: $d"
           echo "dir=$d" >> "$GITHUB_OUTPUT"
